@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>CRYSTAL BURST - Satisfying Puzzle</title>
+    <style>
+        :root {
+            --bg: #0a0a1a;
+            --surface: #1a1a2e;
+            --card: #16213e;
+            --text: #e0e0ff;
+            --accent: #ff6b6b;
+            --gold: #ffd700;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+        body {
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+            position: relative;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 3/4.5;
+            background: linear-gradient(180deg, #0d0d24 0%, #1a1040 40%, #0d0d24 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(100, 60, 255, 0.15);
+            margin: 10px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        @media (min-width: 520px) { #game-container { border-radius: 28px; } }
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            touch-action: none;
+            display: block;
+            z-index: 1;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #score-display {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+        }
+        #score-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.6);
+            font-weight: 600;
+            margin-bottom: 2px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+        #score-value {
+            font-size: 42px;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 2px 12px rgba(255,255,255,0.4), 0 4px 20px rgba(120,80,255,0.4);
+            letter-spacing: -1px;
+            line-height: 1;
+            transition: transform 0.1s ease;
+        }
+        #score-value.pulse { animation: scorePulse 0.3s ease-out; }
+        @keyframes scorePulse { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+        #combo-display {
+            position: absolute;
+            top: 78px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #combo-display.active { opacity: 1; transform: translateX(-50%) scale(1); }
+        #combo-value {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 2px 8px rgba(0,0,0,0.6);
+            letter-spacing: -0.5px;
+        }
+        #combo-multiplier {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffaa00;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+            letter-spacing: 1px;
+        }
+        #level-bar-container {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 65%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        #level-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            margin-bottom: 4px;
+            font-weight: 600;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+        #level-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+        }
+        #level-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffd700);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+            box-shadow: 0 0 12px rgba(255,215,0,0.6);
+        }
+        #shuffle-btn, #sound-btn {
+            position: absolute;
+            bottom: 36px;
+            pointer-events: auto;
+            z-index: 20;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 20px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        #shuffle-btn { right: 20px; }
+        #sound-btn { left: 20px; }
+        #shuffle-btn:active, #sound-btn:active {
+            transform: scale(0.85);
+            background: rgba(255,255,255,0.2);
+        }
+        /* ===== START SCREEN (Screenshot style) ===== */
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: auto;
+            background: radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a1a 100%);
+            overflow: hidden;
+            transition: opacity 0.5s ease;
+        }
+        #start-screen.hidden { opacity: 0; pointer-events: none; }
+        /* Buttons/inputs inside start-screen set their own pointer-events:auto
+           so they're clickable while the screen is visible — but that same
+           declaration overrides the inherited "none" once .hidden is applied,
+           leaving them clickable-but-invisible during gameplay. Force them off. */
+        #start-screen.hidden * { pointer-events: none !important; }
+        .crystal-deco {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+            filter: blur(0.5px);
+            opacity: 0.5;
+        }
+        .crystal-deco-1 {
+            bottom: -20px;
+            left: -20px;
+            width: 100px;
+            height: 150px;
+            background: linear-gradient(135deg, #4a9eff, #1a4aff);
+            clip-path: polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
+            transform: rotate(15deg);
+        }
+        .crystal-deco-2 {
+            top: -30px;
+            right: -30px;
+            width: 80px;
+            height: 120px;
+            background: linear-gradient(135deg, #ff4a4a, #ff1a1a);
+            clip-path: polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
+            transform: rotate(-20deg);
+        }
+        .crystal-deco-3 {
+            top: 20px;
+            left: -40px;
+            width: 70px;
+            height: 100px;
+            background: linear-gradient(135deg, #aa44ff, #7711ff);
+            clip-path: polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
+            transform: rotate(30deg);
+        }
+        .crystal-deco-4 {
+            bottom: -20px;
+            right: -20px;
+            width: 90px;
+            height: 140px;
+            background: linear-gradient(135deg, #ffcc00, #ff9900);
+            clip-path: polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
+            transform: rotate(-15deg);
+        }
+        #start-title {
+            font-size: 58px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #ffaa00, #ff6b6b, #aa44ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            position: relative;
+            z-index: 10;
+        }
+        #start-subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        #start-high-score {
+            font-size: 16px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 20px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 10;
+        }
+        #start-high-score span { color: var(--gold); font-weight: 800; font-size: 22px; }
+        #play-btn {
+            pointer-events: auto;
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 16px 48px;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 30px rgba(255,80,80,0.4), 0 2px 8px rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            position: relative;
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #play-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 4px 15px rgba(255,80,80,0.3);
+        }
+        #stats-btn {
+            pointer-events: auto;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+            position: relative;
+            z-index: 60;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        #stats-btn:active {
+            background: rgba(255,255,255,0.2);
+            transform: scale(0.95);
+        }
+        #nickname-row {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 60;
+        }
+        #nickname-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #nickname-input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 6px 12px;
+            font-size: 14px;
+            color: #fff;
+            width: 140px;
+            text-align: center;
+            font-family: inherit;
+        }
+        #nickname-input:focus { outline: none; border-color: var(--gold); }
+        #ingame-stats-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            pointer-events: auto;
+            z-index: 20;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        #ingame-stats-btn:active { transform: scale(0.85); background: rgba(255,255,255,0.2); }
+        /* ===== STATS MODAL ===== */
+        #stats-modal {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 70;
+            background: rgba(0,0,0,0.6);
+            pointer-events: auto;
+        }
+        #stats-modal.active { display: flex; }
+        .stats-content {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            width: 80%;
+            max-width: 320px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            position: relative;
+        }
+        .stats-content h2 {
+            font-size: 20px;
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 14px;
+            color: #ccc;
+        }
+        .stat-row span:last-child {
+            font-weight: 700;
+            color: #fff;
+        }
+        .stat-note {
+            margin-top: 15px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            line-height: 1.4;
+        }
+        .close-stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .close-stats:hover { background: rgba(255,255,255,0.1); }
+        /* ===== GAME OVER OVERLAY ===== */
+        #game-over-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            pointer-events: auto;
+            background: rgba(10,10,30,0.9);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        #game-over-overlay.active { display: flex; }
+        #game-over-title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(255,80,80,0.6);
+            margin-bottom: 12px;
+        }
+        #game-over-score {
+            font-size: 56px;
+            font-weight: 900;
+            color: var(--gold);
+            text-shadow: 0 0 30px rgba(255,215,0,0.7);
+            margin-bottom: 4px;
+        }
+        #game-over-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        #restart-btn {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 40px;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 25px rgba(255,215,0,0.4);
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+        }
+        #restart-btn:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(255,215,0,0.3); }
+        #new-high-score-badge {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffd700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            animation: badgePulse 1s ease-in-out infinite;
+            display: none;
+        }
+        #new-high-score-badge.show { display: block; }
+        @keyframes badgePulse { 0%,100% { transform: scale(1); opacity:1; } 50% { transform: scale(1.1); opacity:0.8; } }
+        #level-up-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            z-index: 30;
+            pointer-events: none;
+            text-align: center;
+            opacity: 0;
+        }
+        #level-up-banner.active { animation: levelUpBanner 1.5s ease-out forwards; }
+        @keyframes levelUpBanner { 0% { transform: translate(-50%,-50%) scale(0.3); opacity:0; } 20% { transform: translate(-50%,-50%) scale(1.15); opacity:1; } 40% { transform: translate(-50%,-50%) scale(1); } 75% { opacity:1; } 100% { transform: translate(-50%,-50%) scale(1); opacity:0; } }
+        #level-up-text {
+            font-size: 40px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 40px rgba(255,215,0,0.9), 0 4px 16px rgba(0,0,0,0.6);
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        #level-up-sub {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .float-text {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            z-index: 15;
+            animation: floatUp 1s ease-out forwards;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+        @keyframes floatUp { 0% { opacity:1; transform: translateY(0) scale(1); } 100% { opacity:0; transform: translateY(-80px) scale(1.4); } }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-overlay">
+            <div id="score-display">
+                <div id="score-label">Score</div>
+                <div id="score-value">0</div>
+            </div>
+            <div id="combo-display">
+                <div id="combo-value">×2</div>
+                <div id="combo-multiplier">COMBO</div>
+            </div>
+            <div id="level-bar-container">
+                <div id="level-label">Level 1</div>
+                <div id="level-bar-bg">
+                    <div id="level-bar-fill"></div>
+                </div>
+            </div>
+            <button id="shuffle-btn" title="Shuffle">🔀</button>
+            <button id="sound-btn" title="Sound">🔊</button>
+            <button id="ingame-stats-btn" title="Stats">📊</button>
+        </div>
+        <div id="level-up-banner">
+            <div id="level-up-text">LEVEL 2!</div>
+            <div id="level-up-sub">New colors appear</div>
+        </div>
+        <div id="game-over-overlay">
+            <div id="new-high-score-badge">★ New High Score! ★</div>
+            <div id="game-over-title">Game Over</div>
+            <div id="game-over-score">0</div>
+            <div id="game-over-label">Final Score</div>
+            <button id="restart-btn">Play Again</button>
+        </div>
+        <div id="start-screen">
+            <div class="crystal-deco crystal-deco-1"></div>
+            <div class="crystal-deco crystal-deco-2"></div>
+            <div class="crystal-deco crystal-deco-3"></div>
+            <div class="crystal-deco crystal-deco-4"></div>
+            <div id="start-title">CRYSTAL BURST</div>
+            <div id="start-subtitle">TAP • POP • SATISFY</div>
+            <div id="start-high-score">Best: <span id="start-high-value">0</span></div>
+            <div id="nickname-row">
+                <span id="nickname-label">Name:</span>
+                <input id="nickname-input" type="text" maxlength="16" spellcheck="false" autocomplete="off">
+            </div>
+            <button id="play-btn">▶ Play</button>
+            <button id="stats-btn">📊 Stats</button>
+        </div>
+        <div id="stats-modal">
+            <div class="stats-content">
+                <button id="close-stats" class="close-stats">×</button>
+                <h2>Game Statistics</h2>
+                <div class="stat-row">
+                    <span>Total Players (All-Time)</span>
+                    <span id="stat-total-visits">Loading…</span>
+                </div>
+                <div class="stat-row">
+                    <span>Active Now</span>
+                    <span id="stat-active-players">Loading…</span>
+                </div>
+                <div class="stat-row">
+                    <span>Global High Score</span>
+                    <span id="stat-global-high">Loading…</span>
+                </div>
+                <div class="stat-row">
+                    <span>Your High Score</span>
+                    <span id="stat-local-high">0</span>
+                </div>
+                <div class="stat-note">* Stats update at most every 20s to keep things fast, and refresh whenever you open this panel or come back to the game.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== SAFE STORAGE (localStorage + cookie) ====================
+            function safeGetItem(key, fallback) {
+                try {
+                    const val = localStorage.getItem(key);
+                    if (val !== null) return val;
+                } catch (e) {}
+                try {
+                    const cookies = document.cookie.split(';');
+                    for (const cookie of cookies) {
+                        const [name, value] = cookie.split('=');
+                        if (name.trim() === encodeURIComponent(key)) {
+                            return decodeURIComponent(value);
+                        }
+                    }
+                } catch (e) {}
+                return fallback;
+            }
+            function safeSetItem(key, value) {
+                try {
+                    localStorage.setItem(key, value);
+                    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Strict`;
+                } catch (e) {}
+            }
+
+            // ==================== CONFIGURATION ====================
+            const GRID_SIZE = 8;
+            const COLORS = [
+                { name: 'Ruby', main: '#ff4444', light: '#ff8888', dark: '#cc2222', glow: 'rgba(255,68,68,0.5)', sound: 520 },
+                { name: 'Sapphire', main: '#4488ff', light: '#88bbff', dark: '#2255cc', glow: 'rgba(68,136,255,0.5)', sound: 440 },
+                { name: 'Emerald', main: '#44dd44', light: '#88ee88', dark: '#22aa22', glow: 'rgba(68,221,68,0.5)', sound: 390 },
+                { name: 'Topaz', main: '#ffcc00', light: '#ffdd55', dark: '#cc9900', glow: 'rgba(255,204,0,0.5)', sound: 470 },
+                { name: 'Amethyst', main: '#aa44ff', light: '#cc88ff', dark: '#7722cc', glow: 'rgba(170,68,255,0.5)', sound: 590 },
+                { name: 'Citrine', main: '#ff8844', light: '#ffaa66', dark: '#cc6622', glow: 'rgba(255,136,68,0.5)', sound: 500 }
+            ];
+            const BOMB_COLOR = '#222233';
+            const MIN_CLUSTER = 3;
+            const COMBO_WINDOW = 2500;
+            const BASE_SCORE_PER_GEM = 15;
+            const COMBO_MULTIPLIER_STEP = 0.5;
+            const MAX_COMBO_MULTIPLIER = 12;
+            const LEVEL_SCORE_BASE = 400;
+            const LEVEL_SCORE_GROWTH = 1.7;
+            const BOMB_CHANCE = 0.06;
+            const MAX_COLORS_PER_LEVEL = 6;
+            const FALL_DURATION = 350;
+            const SHUFFLE_COOLDOWN = 1500;
+
+            // ==================== DOM ELEMENTS ====================
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const scoreValueEl = document.getElementById('score-value');
+            const comboDisplayEl = document.getElementById('combo-display');
+            const comboValueEl = document.getElementById('combo-value');
+            const comboMultiplierEl = document.getElementById('combo-multiplier');
+            const levelLabelEl = document.getElementById('level-label');
+            const levelBarFillEl = document.getElementById('level-bar-fill');
+            const startScreenEl = document.getElementById('start-screen');
+            const startHighValueEl = document.getElementById('start-high-value');
+            const playBtn = document.getElementById('play-btn');
+            const gameOverOverlayEl = document.getElementById('game-over-overlay');
+            const gameOverScoreEl = document.getElementById('game-over-score');
+            const newHighScoreBadge = document.getElementById('new-high-score-badge');
+            const restartBtn = document.getElementById('restart-btn');
+            const levelUpBannerEl = document.getElementById('level-up-banner');
+            const levelUpTextEl = document.getElementById('level-up-text');
+            const levelUpSubEl = document.getElementById('level-up-sub');
+            const shuffleBtn = document.getElementById('shuffle-btn');
+            const soundBtn = document.getElementById('sound-btn');
+            const statsBtn = document.getElementById('stats-btn');
+            const ingameStatsBtn = document.getElementById('ingame-stats-btn');
+            const statsModal = document.getElementById('stats-modal');
+            const closeStatsBtn = document.getElementById('close-stats');
+            const statTotalVisitsEl = document.getElementById('stat-total-visits');
+            const statActivePlayersEl = document.getElementById('stat-active-players');
+            const statGlobalHighEl = document.getElementById('stat-global-high');
+            const statLocalHighEl = document.getElementById('stat-local-high');
+            const nicknameInput = document.getElementById('nickname-input');
+
+            // ==================== CANVAS SIZING ====================
+            let containerWidth, containerHeight, cellSize, boardX, boardY, dpr;
+
+            function resizeCanvas() {
+                const container = document.getElementById('game-container');
+                const rect = container.getBoundingClientRect();
+                containerWidth = rect.width;
+                containerHeight = rect.height;
+                dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+                canvas.width = containerWidth * dpr;
+                canvas.height = containerHeight * dpr;
+                canvas.style.width = containerWidth + 'px';
+                canvas.style.height = containerHeight + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                const boardSize = Math.min(containerWidth * 0.88, containerHeight * 0.55);
+                cellSize = boardSize / GRID_SIZE;
+                boardX = (containerWidth - boardSize) / 2;
+                boardY = containerHeight * 0.16;
+            }
+
+            // ==================== AUDIO SYSTEM ====================
+            class AudioSystem {
+                constructor() {
+                    this.ctx = null;
+                    this.enabled = true;
+                    this.initialized = false;
+                }
+                init() {
+                    if (this.initialized) return;
+                    try {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        this.initialized = true;
+                    } catch (e) {}
+                }
+                resume() {
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
+                toggle() {
+                    this.enabled = !this.enabled;
+                    if (this.enabled) {
+                        this.resume();
+                        soundBtn.textContent = '🔊';
+                    } else {
+                        soundBtn.textContent = '🔇';
+                    }
+                    return this.enabled;
+                }
+                playPop(frequency, duration = 0.15, volume = 0.25) {
+                    if (!this.enabled || !this.ctx) return;
+                    try {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        const filter = this.ctx.createBiquadFilter();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(frequency, this.ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(frequency * 1.8, this.ctx.currentTime + duration * 0.6);
+                        osc.frequency.exponentialRampToValueAtTime(frequency * 0.7, this.ctx.currentTime + duration);
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(3000, this.ctx.currentTime);
+                        filter.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + duration);
+                        gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                        gain.gain.linearRampToValueAtTime(volume, this.ctx.currentTime + 0.005);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                        osc.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(this.ctx.currentTime);
+                        osc.stop(this.ctx.currentTime + duration + 0.05);
+                    } catch (e) {}
+                }
+                playBigPop(frequency, combo = 1) {
+                    if (!this.enabled || !this.ctx) return;
+                    const vol = Math.min(0.35 + combo * 0.03, 0.5);
+                    this.playPop(frequency, 0.2, vol);
+                    setTimeout(() => this.playPop(frequency * 1.5, 0.12, vol * 0.6), 40);
+                    setTimeout(() => this.playPop(frequency * 2, 0.08, vol * 0.35), 75);
+                }
+                playCombo(comboLevel) {
+                    if (!this.enabled || !this.ctx) return;
+                    const baseFreq = 600 + comboLevel * 80;
+                    try {
+                        for (let i = 0; i < 3; i++) {
+                            const freq = baseFreq + i * 120;
+                            setTimeout(() => {
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.type = 'triangle';
+                                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                                osc.frequency.exponentialRampToValueAtTime(freq * 1.3, this.ctx.currentTime + 0.08);
+                                gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                                gain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 0.01);
+                                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.start(this.ctx.currentTime);
+                                osc.stop(this.ctx.currentTime + 0.12);
+                            }, i * 50);
+                        }
+                    } catch (e) {}
+                }
+                playLevelUp() {
+                    if (!this.enabled || !this.ctx) return;
+                    const notes = [523, 659, 784, 1047];
+                    notes.forEach((freq, i) => {
+                        setTimeout(() => {
+                            try {
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                                gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                                gain.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + 0.02);
+                                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.start(this.ctx.currentTime);
+                                osc.stop(this.ctx.currentTime + 0.3);
+                            } catch (e) {}
+                        }, i * 90);
+                    });
+                }
+                playShuffle() {
+                    if (!this.enabled || !this.ctx) return;
+                    try {
+                        const duration = 0.4;
+                        const bufferSize = this.ctx.sampleRate * duration;
+                        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / bufferSize * 4);
+                        }
+                        const noise = this.ctx.createBufferSource();
+                        noise.buffer = buffer;
+                        const filter = this.ctx.createBiquadFilter();
+                        filter.type = 'bandpass';
+                        filter.frequency.setValueAtTime(400, this.ctx.currentTime);
+                        filter.frequency.exponentialRampToValueAtTime(2000, this.ctx.currentTime + duration * 0.7);
+                        filter.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + duration);
+                        const gain = this.ctx.createGain();
+                        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                        noise.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        noise.start(this.ctx.currentTime);
+                        noise.stop(this.ctx.currentTime + duration);
+                    } catch (e) {}
+                }
+                playBomb() {
+                    if (!this.enabled || !this.ctx) return;
+                    try {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        const filter = this.ctx.createBiquadFilter();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(2000, this.ctx.currentTime);
+                        filter.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.3);
+                        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+                        osc.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(this.ctx.currentTime);
+                        osc.stop(this.ctx.currentTime + 0.4);
+                    } catch (e) {}
+                }
+                playNoMatch() {
+                    if (!this.enabled || !this.ctx) return;
+                    try {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.1);
+                        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(this.ctx.currentTime);
+                        osc.stop(this.ctx.currentTime + 0.15);
+                    } catch (e) {}
+                }
+            }
+
+            // ==================== PARTICLE SYSTEM ====================
+            class Particle {
+                constructor(x, y, vx, vy, size, color, life, type = 'shard') {
+                    this.x = x;
+                    this.y = y;
+                    this.vx = vx;
+                    this.vy = vy;
+                    this.size = size;
+                    this.color = color;
+                    this.life = life;
+                    this.maxLife = life;
+                    this.type = type;
+                    this.rotation = Math.random() * Math.PI * 2;
+                    this.rotationSpeed = (Math.random() - 0.5) * 10;
+                    this.gravity = type === 'sparkle' ? 0 : 500;
+                }
+                update(dt) {
+                    this.x += this.vx * dt;
+                    this.y += this.vy * dt;
+                    this.vy += this.gravity * dt;
+                    this.life -= dt;
+                    this.rotation += this.rotationSpeed * dt;
+                    return this.life > 0;
+                }
+                draw(ctx) {
+                    const alpha = Math.max(0, this.life / this.maxLife);
+                    const scale = this.type === 'sparkle' ? alpha : Math.min(1, alpha * 1.5);
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.rotation);
+                    ctx.scale(scale, scale);
+                    if (this.type === 'sparkle') {
+                        ctx.fillStyle = '#fff';
+                        ctx.shadowColor = '#fff';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.size * 0.7, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = this.color;
+                        for (let i = 0; i < 4; i++) {
+                            const angle = (i / 4) * Math.PI * 2 + this.rotation;
+                            ctx.beginPath();
+                            ctx.arc(Math.cos(angle) * this.size * 1.4, Math.sin(angle) * this.size * 1.4, this.size * 0.4, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        ctx.fillStyle = this.color;
+                        ctx.shadowColor = this.color;
+                        ctx.shadowBlur = 4;
+                        ctx.beginPath();
+                        const s = this.size;
+                        ctx.moveTo(-s, -s * 0.6);
+                        ctx.lineTo(s, -s * 0.3);
+                        ctx.lineTo(s * 0.5, s);
+                        ctx.lineTo(-s * 0.5, s);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.restore();
+                }
+            }
+            class ParticleSystem {
+                constructor() {
+                    this.particles = [];
+                }
+                emit(x, y, count, colors, sizeRange = [3, 9], speedRange = [80, 300]) {
+                    for (let i = 0; i < count; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
+                        const vx = Math.cos(angle) * speed * (0.4 + Math.random() * 0.8);
+                        const vy = Math.sin(angle) * speed * (0.4 + Math.random() * 0.8) - 50;
+                        const size = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        const life = 0.5 + Math.random() * 0.7;
+                        this.particles.push(new Particle(x, y, vx, vy, size, color, life, 'shard'));
+                    }
+                    for (let i = 0; i < Math.ceil(count / 2); i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 20 + Math.random() * 60;
+                        const vx = Math.cos(angle) * speed;
+                        const vy = Math.sin(angle) * speed - 30;
+                        const size = 1.5 + Math.random() * 2.5;
+                        const life = 0.3 + Math.random() * 0.4;
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        this.particles.push(new Particle(x, y, vx, vy, size, color, life, 'sparkle'));
+                    }
+                }
+                emitConfetti(x, y, count, color) {
+                    for (let i = 0; i < count; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 100 + Math.random() * 200;
+                        const vx = Math.cos(angle) * speed;
+                        const vy = Math.sin(angle) * speed - 80;
+                        const size = 4 + Math.random() * 8;
+                        const life = 0.8 + Math.random() * 0.6;
+                        this.particles.push(new Particle(x, y, vx, vy, size, color, life, 'shard'));
+                    }
+                }
+                update(dt) {
+                    this.particles = this.particles.filter(p => p.update(dt));
+                }
+                draw(ctx) {
+                    for (const p of this.particles) {
+                        p.draw(ctx);
+                    }
+                }
+                clear() {
+                    this.particles = [];
+                }
+            }
+
+            // ==================== CRYSTAL ====================
+            class Crystal {
+                constructor(row, col, colorIndex, isBomb = false) {
+                    this.row = row;
+                    this.col = col;
+                    this.colorIndex = colorIndex;
+                    this.isBomb = isBomb;
+                    this.targetX = 0;
+                    this.targetY = 0;
+                    this.currentX = 0;
+                    this.currentY = 0;
+                    this.velocityY = 0;
+                    this.velocityX = 0;
+                    this.isSettled = false;
+                    this.isPopping = false;
+                    this.popTimer = 0;
+                    this.fallDelay = 0;
+                    this.bounceOffset = 0;
+                    this.glowIntensity = 0;
+                    this.isSelected = false;
+                    this.hintGlow = 0;
+                    this.scale = 1;
+                }
+                get color() { return this.isBomb ? BOMB_COLOR : COLORS[this.colorIndex].main; }
+                get lightColor() { return this.isBomb ? '#444466' : COLORS[this.colorIndex].light; }
+                get darkColor() { return this.isBomb ? '#111122' : COLORS[this.colorIndex].dark; }
+                get glowColor() { return this.isBomb ? 'rgba(255,100,50,0.5)' : COLORS[this.colorIndex].glow; }
+                get soundFreq() { return this.isBomb ? 120 : COLORS[this.colorIndex].sound; }
+            }
+
+            // ==================== GAME ====================
+            class Game {
+                constructor() {
+                    this.grid = [];
+                    this.particles = new ParticleSystem();
+                    this.audio = new AudioSystem();
+                    this.score = 0;
+                    this.displayScore = 0;
+                    this.comboCount = 0;
+                    this.comboMultiplier = 1;
+                    this.lastPopTime = 0;
+                    this.level = 1;
+                    this.colorsInPlay = 4;
+                    this.gameState = 'menu';
+                    this.isProcessing = false;
+                    this.screenShake = 0;
+                    this.screenShakeX = 0;
+                    this.screenShakeY = 0;
+                    this.shuffleCooldown = 0;
+                    this.lastMoveTime = 0;
+                    this.hintTimer = 0;
+                    this.hintActive = false;
+                    this.hintCluster = null;
+                    this.flashEffect = 0;
+                    this.flashColor = 'rgba(255,255,255,0)';
+                    this.animFrame = 0;
+                    // Safe high score retrieval
+                    const storedHigh = safeGetItem('crystalBurstHighScore', '0');
+                    this.highScore = parseInt(storedHigh) || 0;
+                    this.newHighScoreAchieved = false;
+                    startHighValueEl.textContent = this.highScore.toLocaleString();
+                    this.resetGrid();
+                }
+                resetGrid() {
+                    this.grid = [];
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        this.grid[r] = [];
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            const colorIdx = Math.floor(Math.random() * this.colorsInPlay);
+                            const crystal = new Crystal(r, c, colorIdx, false);
+                            this.grid[r][c] = crystal;
+                        }
+                    }
+                }
+                getLevelTarget() {
+                    return Math.round(LEVEL_SCORE_BASE * Math.pow(LEVEL_SCORE_GROWTH, this.level - 1));
+                }
+                getLevelProgress() {
+                    const currentTarget = this.getLevelTarget();
+                    const prevTarget = this.level > 1 ? Math.round(LEVEL_SCORE_BASE * Math.pow(LEVEL_SCORE_GROWTH, this.level - 2)) : 0;
+                    const progress = (this.score - prevTarget) / (currentTarget - prevTarget);
+                    return Math.max(0, Math.min(1, progress));
+                }
+                getScoreForLevel(level) {
+                    return Math.round(LEVEL_SCORE_BASE * Math.pow(LEVEL_SCORE_GROWTH, level - 1));
+                }
+                start() {
+                    this.audio.init();
+                    this.audio.resume();
+                    this.score = 0;
+                    this.displayScore = 0;
+                    this.comboCount = 0;
+                    this.comboMultiplier = 1;
+                    this.level = 1;
+                    this.colorsInPlay = 4;
+                    this.gameState = 'playing';
+                    this.isProcessing = false;
+                    this.screenShake = 0;
+                    this.newHighScoreAchieved = false;
+                    this.shuffleCooldown = 0;
+                    this.hintTimer = 0;
+                    this.hintActive = false;
+                    this.hintCluster = null;
+                    this.flashEffect = 0;
+                    this.particles.clear();
+                    this.resetGrid();
+                    this.setupInitialDrop();
+                    startScreenEl.classList.add('hidden');
+                    gameOverOverlayEl.classList.remove('active');
+                    newHighScoreBadge.classList.remove('show');
+                    this.updateUI();
+                    this.lastMoveTime = performance.now();
+                }
+                setupInitialDrop() {
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            const crystal = this.grid[r][c];
+                            crystal.targetX = boardX + c * cellSize + cellSize / 2;
+                            crystal.targetY = boardY + r * cellSize + cellSize / 2;
+                            crystal.currentX = crystal.targetX;
+                            crystal.currentY = -cellSize * 2 - Math.random() * cellSize * 6;
+                            crystal.fallDelay = r * 50 + c * 25;
+                            crystal.isSettled = false;
+                            crystal.velocityY = 0;
+                        }
+                    }
+                }
+                updateUI() {
+                    scoreValueEl.textContent = Math.round(this.displayScore).toLocaleString();
+                    const levelTarget = this.getLevelTarget();
+                    const progress = this.getLevelProgress();
+                    levelBarFillEl.style.width = (progress * 100) + '%';
+                    levelLabelEl.textContent = 'Level ' + this.level;
+                    if (this.comboCount > 1) {
+                        comboDisplayEl.classList.add('active');
+                        comboValueEl.textContent = '×' + this.comboMultiplier.toFixed(1);
+                    } else {
+                        comboDisplayEl.classList.remove('active');
+                    }
+                }
+                playPopSound(clusterSize, colorIdx, isBombPop = false) {
+                    if (isBombPop) { this.audio.playBomb(); return; }
+                    const baseFreq = COLORS[colorIdx].sound;
+                    if (clusterSize >= 6) this.audio.playBigPop(baseFreq, this.comboCount);
+                    else if (clusterSize >= 4) this.audio.playPop(baseFreq * 1.2, 0.18, 0.3);
+                    else this.audio.playPop(baseFreq, 0.13, 0.22);
+                }
+                findCluster(row, col) {
+                    const crystal = this.grid[row][col];
+                    if (!crystal || crystal.isPopping) return [];
+                    const targetColor = crystal.colorIndex;
+                    const visited = new Set();
+                    const cluster = [];
+                    const queue = [[row, col]];
+                    visited.add(row + ',' + col);
+                    while (queue.length > 0) {
+                        const [r, c] = queue.shift();
+                        const current = this.grid[r][c];
+                        if (!current || current.isPopping) continue;
+                        if (current.colorIndex !== targetColor || current.isBomb !== crystal.isBomb) continue;
+                        cluster.push(current);
+                        const neighbors = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+                        for (const [nr, nc] of neighbors) {
+                            if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
+                                const key = nr + ',' + nc;
+                                if (!visited.has(key)) {
+                                    const neighbor = this.grid[nr][nc];
+                                    if (neighbor && !neighbor.isPopping && neighbor.colorIndex === targetColor && neighbor.isBomb === crystal.isBomb) {
+                                        visited.add(key);
+                                        queue.push([nr, nc]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return cluster;
+                }
+                findAllClusters() {
+                    const visited = new Set();
+                    const clusters = [];
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            const key = r + ',' + c;
+                            if (visited.has(key)) continue;
+                            const crystal = this.grid[r][c];
+                            if (!crystal || crystal.isPopping) continue;
+                            const cluster = this.findCluster(r, c);
+                            if (cluster.length >= MIN_CLUSTER) {
+                                clusters.push(cluster);
+                                for (const item of cluster) visited.add(item.row + ',' + item.col);
+                            } else {
+                                for (const item of cluster) visited.add(item.row + ',' + item.col);
+                            }
+                        }
+                    }
+                    return clusters;
+                }
+                hasValidMove() { return this.findAllClusters().length > 0; }
+                handleTap(row, col) {
+                    if (this.gameState !== 'playing' || this.isProcessing) return;
+                    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+                    const crystal = this.grid[row][col];
+                    if (!crystal || crystal.isPopping) return;
+                    if (!crystal.isSettled) return;
+                    const cluster = this.findCluster(row, col);
+                    if (cluster.length < MIN_CLUSTER) {
+                        this.audio.playNoMatch();
+                        for (const c of cluster) {
+                            c.scale = 0.85;
+                            setTimeout(() => { c.scale = 1; }, 150);
+                        }
+                        this.screenShake = Math.max(this.screenShake, 2);
+                        return;
+                    }
+                    this.isProcessing = true;
+                    const now = performance.now();
+                    const timeSinceLastPop = now - this.lastPopTime;
+                    if (timeSinceLastPop < COMBO_WINDOW && this.comboCount > 0) {
+                        this.comboCount++;
+                        this.comboMultiplier = Math.min(MAX_COMBO_MULTIPLIER, 1 + this.comboCount * COMBO_MULTIPLIER_STEP);
+                        this.audio.playCombo(Math.min(this.comboCount, 8));
+                    } else {
+                        this.comboCount = 1;
+                        this.comboMultiplier = 1;
+                    }
+                    this.lastPopTime = now;
+                    this.lastMoveTime = now;
+                    const baseScore = cluster.length * BASE_SCORE_PER_GEM;
+                    const totalScore = Math.round(baseScore * this.comboMultiplier);
+                    this.score += totalScore;
+                    this.displayScore += totalScore;
+                    const colors = cluster.map(c => c.color);
+                    const centerX = cluster.reduce((s, c) => s + c.currentX, 0) / cluster.length;
+                    const centerY = cluster.reduce((s, c) => s + c.currentY, 0) / cluster.length;
+                    const particleCount = Math.min(cluster.length * 5, 50);
+                    this.particles.emit(centerX, centerY, particleCount, colors, [3, 8], [100, 350]);
+                    if (cluster.length >= 5) {
+                        this.particles.emitConfetti(centerX, centerY, 15, colors[0]);
+                    }
+                    this.screenShake = Math.min(cluster.length * 1.2, 18);
+                    this.flashEffect = 0.3;
+                    this.flashColor = 'rgba(255,255,255,0.15)';
+                    this.playPopSound(cluster.length, cluster[0].colorIndex, cluster[0].isBomb);
+                    for (const c of cluster) {
+                        c.isPopping = true;
+                        c.popTimer = 0.25;
+                    }
+                    if (cluster.length >= 4 && Math.random() < BOMB_CHANCE && !cluster.some(c => c.isBomb)) {
+                        const randomCrystal = cluster[Math.floor(Math.random() * cluster.length)];
+                        this.spawnBombAt(randomCrystal.row, randomCrystal.col);
+                    }
+                    const newLevel = this.getLevelFromScore(this.score);
+                    if (newLevel > this.level) {
+                        this.levelUp(newLevel);
+                    }
+                    this.showFloatingText(centerX, centerY, '+' + totalScore.toLocaleString(), this.comboMultiplier > 1 ? '#ffd700' : '#fff');
+                    this.updateUI();
+                    setTimeout(() => {
+                        this.removePoppedAndFall();
+                    }, 200);
+                }
+                getLevelFromScore(score) {
+                    let level = 1;
+                    let cumulative = 0;
+                    while (true) {
+                        const target = this.getScoreForLevel(level + 1);
+                        if (score >= target) level++;
+                        else break;
+                    }
+                    return level;
+                }
+                levelUp(newLevel) {
+                    this.level = newLevel;
+                    this.colorsInPlay = Math.min(MAX_COLORS_PER_LEVEL, 3 + newLevel);
+                    this.audio.playLevelUp();
+                    this.flashEffect = 0.5;
+                    this.flashColor = 'rgba(255,215,0,0.25)';
+                    levelUpTextEl.textContent = 'LEVEL ' + newLevel + '!';
+                    if (newLevel === 2) levelUpSubEl.textContent = 'New color appears';
+                    else if (newLevel === 3) levelUpSubEl.textContent = 'Bombs are here!';
+                    else if (newLevel >= 4) levelUpSubEl.textContent = 'More colors!';
+                    levelUpBannerEl.classList.remove('active');
+                    void levelUpBannerEl.offsetWidth;
+                    levelUpBannerEl.classList.add('active');
+                    this.updateUI();
+                }
+                spawnBombAt(row, col) {
+                    const crystal = this.grid[row][col];
+                    if (crystal && !crystal.isPopping) {
+                        crystal.isBomb = true;
+                        crystal.colorIndex = 0;
+                    }
+                }
+                showFloatingText(x, y, text, color = '#fff') {
+                    const el = document.createElement('div');
+                    el.className = 'float-text';
+                    el.textContent = text;
+                    el.style.left = x + 'px';
+                    el.style.top = y + 'px';
+                    el.style.color = color;
+                    el.style.fontSize = (18 + Math.min(this.comboMultiplier * 4, 24)) + 'px';
+                    document.getElementById('game-container').appendChild(el);
+                    setTimeout(() => el.remove(), 1000);
+                }
+                removePoppedAndFall() {
+                    const poppedPositions = [];
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            if (this.grid[r][c] && this.grid[r][c].isPopping) {
+                                this.grid[r][c] = null;
+                                poppedPositions.push({ row: r, col: c });
+                            }
+                        }
+                    }
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let writeRow = GRID_SIZE - 1;
+                        for (let r = GRID_SIZE - 1; r >= 0; r--) {
+                            if (this.grid[r][c] !== null) {
+                                if (writeRow !== r) {
+                                    const crystal = this.grid[r][c];
+                                    crystal.row = writeRow;
+                                    crystal.targetY = boardY + writeRow * cellSize + cellSize / 2;
+                                    crystal.isSettled = false;
+                                    crystal.velocityY = 0;
+                                    crystal.fallDelay = (writeRow - r) * 15;
+                                    this.grid[writeRow][c] = crystal;
+                                    this.grid[r][c] = null;
+                                } else {
+                                    const crystal = this.grid[r][c];
+                                    crystal.targetY = boardY + writeRow * cellSize + cellSize / 2;
+                                }
+                                writeRow--;
+                            }
+                        }
+                        for (let r = writeRow; r >= 0; r--) {
+                            const colorIdx = Math.floor(Math.random() * this.colorsInPlay);
+                            const crystal = new Crystal(r, c, colorIdx, false);
+                            crystal.targetX = boardX + c * cellSize + cellSize / 2;
+                            crystal.targetY = boardY + r * cellSize + cellSize / 2;
+                            crystal.currentX = crystal.targetX;
+                            crystal.currentY = boardY - cellSize * 3 - Math.random() * cellSize * 5;
+                            crystal.isSettled = false;
+                            crystal.velocityY = 0;
+                            crystal.fallDelay = (GRID_SIZE - r) * 20 + Math.random() * 30;
+                            this.grid[r][c] = crystal;
+                        }
+                    }
+                    setTimeout(() => {
+                        this.isProcessing = false;
+                        if (!this.hasValidMove()) {
+                            this.triggerShuffle();
+                        }
+                        this.updateUI();
+                    }, FALL_DURATION + 250);
+                }
+                triggerShuffle() {
+                    if (this.isProcessing) return;
+                    if (performance.now() - this.shuffleCooldown < SHUFFLE_COOLDOWN) return;
+                    this.shuffleCooldown = performance.now();
+                    this.isProcessing = true;
+                    this.audio.playShuffle();
+                    this.flashEffect = 0.4;
+                    this.flashColor = 'rgba(100,150,255,0.2)';
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            const crystal = this.grid[r][c];
+                            if (crystal) {
+                                crystal.isPopping = true;
+                                crystal.popTimer = 0.3;
+                            }
+                        }
+                    }
+                    setTimeout(() => {
+                        this.resetGrid();
+                        this.setupInitialDrop();
+                        this.isProcessing = false;
+                        this.updateUI();
+                    }, 350);
+                }
+                manualShuffle() {
+                    if (this.gameState !== 'playing' || this.isProcessing) return;
+                    this.triggerShuffle();
+                }
+                update(dt) {
+                    this.animFrame++;
+                    if (this.screenShake > 0) {
+                        this.screenShake *= 0.88;
+                        this.screenShakeX = (Math.random() - 0.5) * this.screenShake * 2;
+                        this.screenShakeY = (Math.random() - 0.5) * this.screenShake * 2;
+                        if (this.screenShake < 0.2) this.screenShake = 0;
+                    } else {
+                        this.screenShakeX = 0;
+                        this.screenShakeY = 0;
+                    }
+                    if (this.flashEffect > 0) {
+                        this.flashEffect *= 0.92;
+                        if (this.flashEffect < 0.01) this.flashEffect = 0;
+                    }
+                    this.particles.update(dt);
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            const crystal = this.grid[r][c];
+                            if (!crystal) continue;
+                            if (crystal.isPopping && crystal.popTimer > 0) {
+                                crystal.popTimer -= dt;
+                                crystal.scale = Math.max(0, crystal.popTimer / 0.25);
+                                continue;
+                            }
+                            if (crystal.isPopping && crystal.popTimer <= 0) {
+                                crystal.scale = 0;
+                                continue;
+                            }
+                            if (crystal.scale < 1 && !crystal.isPopping) {
+                                crystal.scale = Math.min(1, crystal.scale + dt * 6);
+                            }
+                            if (!crystal.isSettled) {
+                                if (crystal.fallDelay > 0) {
+                                    crystal.fallDelay -= dt * 1000;
+                                } else {
+                                    const dy = crystal.targetY - crystal.currentY;
+                                    if (Math.abs(dy) > 0.5) {
+                                        crystal.velocityY += dy * 18 * dt;
+                                        crystal.velocityY *= 0.85;
+                                        crystal.currentY += crystal.velocityY * dt;
+                                    } else {
+                                        crystal.currentY = crystal.targetY;
+                                        crystal.isSettled = true;
+                                        crystal.velocityY = 0;
+                                    }
+                                }
+                            }
+                            const dx = crystal.targetX - crystal.currentX;
+                            if (Math.abs(dx) > 0.5) {
+                                crystal.currentX += dx * 0.15;
+                            } else {
+                                crystal.currentX = crystal.targetX;
+                            }
+                        }
+                    }
+                    if (Math.abs(this.displayScore - this.score) > 1) {
+                        const diff = this.score - this.displayScore;
+                        this.displayScore += diff * 0.15;
+                        if (Math.abs(diff) < 0.5) this.displayScore = this.score;
+                        scoreValueEl.textContent = Math.round(this.displayScore).toLocaleString();
+                    } else {
+                        scoreValueEl.textContent = Math.round(this.score).toLocaleString();
+                    }
+                    if (this.comboCount > 1) {
+                        comboDisplayEl.classList.add('active');
+                        comboValueEl.textContent = '×' + this.comboMultiplier.toFixed(1);
+                        const intensity = Math.min(1, this.comboMultiplier / MAX_COMBO_MULTIPLIER);
+                        comboValueEl.style.color = `hsl(${50 - intensity * 30}, 100%, ${60 + intensity * 20}%)`;
+                    } else {
+                        comboDisplayEl.classList.remove('active');
+                    }
+                    if (this.comboCount > 0 && performance.now() - this.lastPopTime > COMBO_WINDOW) {
+                        this.comboCount = 0;
+                        this.comboMultiplier = 1;
+                        this.updateUI();
+                    }
+                    if (this.gameState === 'playing' && !this.isProcessing) {
+                        const idleTime = performance.now() - this.lastMoveTime;
+                        if (idleTime > 3500 && !this.hintActive) {
+                            this.hintActive = true;
+                            this.hintTimer = 0;
+                            const clusters = this.findAllClusters();
+                            if (clusters.length > 0) {
+                                this.hintCluster = clusters[0];
+                            }
+                        }
+                        if (this.hintActive && this.hintCluster) {
+                            this.hintTimer += dt;
+                            if (this.hintTimer > 2.5) {
+                                this.hintActive = false;
+                                this.hintCluster = null;
+                                this.lastMoveTime = performance.now();
+                            }
+                        }
+                        if (idleTime < 3000) {
+                            this.hintActive = false;
+                            this.hintCluster = null;
+                        }
+                    }
+                }
+                drawCrystal(crystal, ctx) {
+                    if (!crystal || crystal.scale <= 0.01) return;
+                    const x = crystal.currentX;
+                    const y = crystal.currentY;
+                    const size = cellSize * 0.78 * crystal.scale;
+                    const half = size / 2;
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                    ctx.shadowBlur = 6;
+                    ctx.shadowOffsetY = 3;
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    const shadowRadius = half * 0.85;
+                    ctx.beginPath();
+                    ctx.ellipse(2, half * 0.55, shadowRadius, shadowRadius * 0.35, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    if (crystal.isSelected || crystal.hintGlow > 0 || (this.hintActive && this.hintCluster && this.hintCluster.includes(crystal))) {
+                        const glowAlpha = crystal.isSelected ? 0.7 : 0.4 + Math.sin(this.animFrame * 0.08) * 0.2;
+                        ctx.shadowColor = crystal.glowColor;
+                        ctx.shadowBlur = 18 + crystal.hintGlow * 10;
+                        ctx.fillStyle = crystal.glowColor;
+                        ctx.globalAlpha = glowAlpha;
+                        const glowSize = half * 1.2;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                        ctx.shadowBlur = 0;
+                    }
+                    const radius = half * 0.3;
+                    ctx.shadowColor = crystal.glowColor;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetY = 2;
+                    const gradient = ctx.createLinearGradient(-half, -half, half, half);
+                    if (crystal.isBomb) {
+                        gradient.addColorStop(0, '#4a4a6a');
+                        gradient.addColorStop(0.4, '#2a2a3a');
+                        gradient.addColorStop(1, '#111122');
+                    } else {
+                        gradient.addColorStop(0, crystal.lightColor);
+                        gradient.addColorStop(0.55, crystal.color);
+                        gradient.addColorStop(1, crystal.darkColor);
+                    }
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.moveTo(-half + radius, -half);
+                    ctx.lineTo(half - radius, -half);
+                    ctx.quadraticCurveTo(half, -half, half, -half + radius);
+                    ctx.lineTo(half, half - radius);
+                    ctx.quadraticCurveTo(half, half, half - radius, half);
+                    ctx.lineTo(-half + radius, half);
+                    ctx.quadraticCurveTo(-half, half, -half, half - radius);
+                    ctx.lineTo(-half, -half + radius);
+                    ctx.quadraticCurveTo(-half, -half, -half + radius, -half);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    const bevelGradient = ctx.createLinearGradient(-half, -half, -half, half * 0.4);
+                    bevelGradient.addColorStop(0, 'rgba(255,255,255,0.5)');
+                    bevelGradient.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = bevelGradient;
+                    ctx.beginPath();
+                    ctx.moveTo(-half + radius + 2, -half + 2);
+                    ctx.lineTo(half - radius - 2, -half + 2);
+                    ctx.quadraticCurveTo(half - 2, -half + 2, half - 2, -half + radius + 2);
+                    ctx.lineTo(half - 2, -half + half * 0.4);
+                    ctx.lineTo(-half + 2, -half + half * 0.4);
+                    ctx.lineTo(-half + 2, -half + radius + 2);
+                    ctx.quadraticCurveTo(-half + 2, -half + 2, -half + radius + 2, -half + 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    const specX = -half * 0.35;
+                    const specY = -half * 0.35;
+                    const specSize = half * 0.45;
+                    const specGradient = ctx.createRadialGradient(specX, specY, 0, specX, specY, specSize);
+                    specGradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+                    specGradient.addColorStop(0.3, 'rgba(255,255,255,0.3)');
+                    specGradient.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = specGradient;
+                    ctx.beginPath();
+                    ctx.arc(specX, specY, specSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (crystal.isBomb) {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.shadowColor = '#ff4444';
+                        ctx.shadowBlur = 12;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, half * 0.35, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold ' + (half * 0.6) + 'px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('💥', 0, 2);
+                    }
+                    if (crystal.isPopping && crystal.popTimer > 0) {
+                        const popProgress = 1 - crystal.popTimer / 0.25;
+                        ctx.globalAlpha = Math.max(0, 1 - popProgress * 1.1);
+                    }
+                    ctx.restore();
+                }
+                drawBackground(ctx) {
+                    const bgGradient = ctx.createLinearGradient(0, 0, 0, containerHeight);
+                    bgGradient.addColorStop(0, '#0d0d24');
+                    bgGradient.addColorStop(0.35, '#1a1040');
+                    bgGradient.addColorStop(0.65, '#0f0f28');
+                    bgGradient.addColorStop(1, '#0a0a1a');
+                    ctx.fillStyle = bgGradient;
+                    ctx.fillRect(0, 0, containerWidth, containerHeight);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                    ctx.lineWidth = 0.5;
+                    const gridSpacing = 40;
+                    for (let x = 0; x < containerWidth; x += gridSpacing) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, containerHeight);
+                        ctx.stroke();
+                    }
+                    for (let y = 0; y < containerHeight; y += gridSpacing) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(containerWidth, y);
+                        ctx.stroke();
+                    }
+                    const boardSize = cellSize * GRID_SIZE;
+                    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+                    ctx.beginPath();
+                    ctx.roundRect(boardX - 6, boardY - 6, boardSize + 12, boardSize + 12, 12);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.roundRect(boardX - 6, boardY - 6, boardSize + 12, boardSize + 12, 12);
+                    ctx.stroke();
+                }
+                drawBoard(ctx) {
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            const crystal = this.grid[r][c];
+                            if (crystal) {
+                                this.drawCrystal(crystal, ctx);
+                            }
+                        }
+                    }
+                }
+                drawEffects(ctx) {
+                    if (this.flashEffect > 0) {
+                        ctx.fillStyle = this.flashColor;
+                        ctx.globalAlpha = this.flashEffect;
+                        ctx.fillRect(0, 0, containerWidth, containerHeight);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+                render() {
+                    ctx.clearRect(0, 0, containerWidth, containerHeight);
+                    ctx.save();
+                    if (this.screenShake > 0.1) {
+                        ctx.translate(this.screenShakeX, this.screenShakeY);
+                    }
+                    this.drawBackground(ctx);
+                    this.drawBoard(ctx);
+                    this.particles.draw(ctx);
+                    ctx.restore();
+                    this.drawEffects(ctx);
+                }
+                gameOver() {
+                    this.gameState = 'gameover';
+                    this.audio.playNoMatch();
+                    if (this.score > this.highScore) {
+                        this.highScore = this.score;
+                        safeSetItem('crystalBurstHighScore', String(this.highScore));
+                        this.newHighScoreAchieved = true;
+                        newHighScoreBadge.classList.add('show');
+                        // Report new high score to the backend (updates global leaderboard)
+                        submitScore(this.highScore);
+                    } else {
+                        newHighScoreBadge.classList.remove('show');
+                    }
+                    gameOverScoreEl.textContent = Math.round(this.score).toLocaleString();
+                    gameOverOverlayEl.classList.add('active');
+                    startHighValueEl.textContent = this.highScore.toLocaleString();
+                    statLocalHighEl.textContent = this.highScore.toLocaleString();
+                }
+            }
+
+            // ==================== STATS & ANALYTICS ====================
+            // Identity: a nickname is the player's persistent identity server-side.
+            // It survives clearing localStorage/cookies as long as the same name is
+            // re-entered, at the cost of not being a secure/unique account system.
+            const API_BASE = '/api';
+            const STATS_MIN_INTERVAL = 20000; // don't hit the backend more than this often
+            const HEARTBEAT_MIN_INTERVAL = 60000; // "active now" refresh cadence
+
+            function sanitizeNickname(name) {
+                return (name || '').toString().trim().slice(0, 16);
+            }
+
+            function getOrCreateNickname() {
+                let name = sanitizeNickname(safeGetItem('crystalBurstNickname', ''));
+                if (!name) {
+                    name = 'Guest' + Math.floor(1000 + Math.random() * 9000);
+                    safeSetItem('crystalBurstNickname', name);
+                }
+                return name;
+            }
+
+            let nickname = getOrCreateNickname();
+            let lastStatsFetch = 0;
+            let lastHeartbeat = 0;
+            let statsCache = null;
+
+            function applyStatsToUI(data) {
+                if (!data) {
+                    statTotalVisitsEl.textContent = 'N/A';
+                    statActivePlayersEl.textContent = 'N/A';
+                    statGlobalHighEl.textContent = 'N/A';
+                } else {
+                    statTotalVisitsEl.textContent = (data.totalVisits || 0).toLocaleString();
+                    statActivePlayersEl.textContent = (data.activePlayers || 0).toLocaleString();
+                    const gh = data.globalHigh || { score: 0, displayName: null };
+                    statGlobalHighEl.textContent = gh.score
+                        ? `${gh.score.toLocaleString()} (${gh.displayName || '???'})`
+                        : '—';
+                }
+                statLocalHighEl.textContent = game.highScore.toLocaleString();
+            }
+
+            // Pull the latest aggregate stats. Cached for STATS_MIN_INTERVAL so
+            // repeatedly opening the stats panel doesn't spam the backend.
+            async function refreshStats(force) {
+                const now = Date.now();
+                if (!force && statsCache && (now - lastStatsFetch) < STATS_MIN_INTERVAL) {
+                    applyStatsToUI(statsCache);
+                    return statsCache;
+                }
+                try {
+                    const res = await fetch(`${API_BASE}/stats`);
+                    const data = await res.json();
+                    statsCache = data;
+                    lastStatsFetch = now;
+                    applyStatsToUI(data);
+                    return data;
+                } catch (e) {
+                    applyStatsToUI(statsCache);
+                    return statsCache;
+                }
+            }
+
+            // Registers this nickname as "seen" (counts unique players / active now)
+            // and pulls back the player's server-known high score, in case their
+            // local storage was cleared but the name matches a known record.
+            async function sendHeartbeat(force) {
+                const now = Date.now();
+                if (!force && (now - lastHeartbeat) < HEARTBEAT_MIN_INTERVAL) return;
+                lastHeartbeat = now;
+                try {
+                    const res = await fetch(`${API_BASE}/stats`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'heartbeat', nickname })
+                    });
+                    const data = await res.json();
+                    statsCache = data;
+                    lastStatsFetch = now;
+                    applyStatsToUI(data);
+                    if (typeof data.yourHighScore === 'number' && data.yourHighScore > game.highScore) {
+                        game.highScore = data.yourHighScore;
+                        safeSetItem('crystalBurstHighScore', String(game.highScore));
+                        startHighValueEl.textContent = game.highScore.toLocaleString();
+                        statLocalHighEl.textContent = game.highScore.toLocaleString();
+                    }
+                } catch (e) { /* offline / not deployed yet — game still works locally */ }
+            }
+
+            async function submitScore(score) {
+                safeSetItem('crystalBurstHighScore', String(score));
+                try {
+                    const res = await fetch(`${API_BASE}/stats`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'submit-score', nickname, score })
+                    });
+                    const data = await res.json();
+                    statsCache = data;
+                    lastStatsFetch = Date.now();
+                    applyStatsToUI(data);
+                } catch (e) { /* offline / not deployed yet */ }
+            }
+
+            // ==================== POLYFILL roundRect ====================
+            if (!CanvasRenderingContext2D.prototype.roundRect) {
+                CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+                    this.moveTo(x + r.tl, y);
+                    this.lineTo(x + w - r.tr, y);
+                    this.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+                    this.lineTo(x + w, y + h - r.br);
+                    this.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+                    this.lineTo(x + r.bl, y + h);
+                    this.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+                    this.lineTo(x, y + r.tl);
+                    this.quadraticCurveTo(x, y, x + r.tl, y);
+                    this.closePath();
+                    return this;
+                };
+            }
+
+            // ==================== INITIALIZATION ====================
+            const game = new Game();
+            let lastTime = 0;
+            let animId = null;
+
+            function gameLoop(timestamp) {
+                const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+                lastTime = timestamp;
+                game.update(dt);
+                game.render();
+                animId = requestAnimationFrame(gameLoop);
+            }
+
+            function initCanvas() {
+                resizeCanvas();
+                game.render();
+                lastTime = performance.now();
+                if (!animId) {
+                    animId = requestAnimationFrame(gameLoop);
+                }
+            }
+
+            function getGridPosition(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                const x = clientX - rect.left;
+                const y = clientY - rect.top;
+                const col = Math.floor((x - boardX) / cellSize);
+                const row = Math.floor((y - boardY) / cellSize);
+                return { row, col };
+            }
+
+            let statsOpen = false;
+
+            function handlePointerDown(e) {
+                e.preventDefault();
+                if (statsOpen) return;
+                if (game.gameState === 'playing' && !game.isProcessing) {
+                    const rect = canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const { row, col } = getGridPosition(clientX, clientY);
+                    if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+                        game.audio.resume();
+                        game.handleTap(row, col);
+                    }
+                } else if (game.gameState === 'gameover') {
+                    game.start();
+                }
+            }
+
+            canvas.addEventListener('mousedown', handlePointerDown);
+            canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+
+            const gameContainer = document.getElementById('game-container');
+            gameContainer.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            playBtn.addEventListener('click', () => {
+                game.audio.init();
+                game.start();
+                sendHeartbeat(true); // count this as a fresh session / "rejoin"
+            });
+
+            nicknameInput.addEventListener('change', () => {
+                const cleaned = sanitizeNickname(nicknameInput.value);
+                nickname = cleaned || getOrCreateNickname();
+                nicknameInput.value = nickname;
+                safeSetItem('crystalBurstNickname', nickname);
+                sendHeartbeat(true);
+            });
+
+            restartBtn.addEventListener('click', () => {
+                game.start();
+            });
+
+            shuffleBtn.addEventListener('click', () => {
+                game.manualShuffle();
+            });
+
+            soundBtn.addEventListener('click', () => {
+                game.audio.init();
+                game.audio.toggle();
+            });
+
+            // Stats modal (accessible from the menu AND mid-game)
+            function openStatsModal() {
+                statsOpen = true;
+                statLocalHighEl.textContent = game.highScore.toLocaleString();
+                statsModal.classList.add('active');
+                refreshStats(false); // uses the cache unless it's stale
+            }
+            function closeStatsModal() {
+                statsOpen = false;
+                statsModal.classList.remove('active');
+            }
+
+            statsBtn.addEventListener('click', openStatsModal);
+            ingameStatsBtn.addEventListener('click', openStatsModal);
+            closeStatsBtn.addEventListener('click', closeStatsModal);
+
+            // Close modal if clicking outside content
+            statsModal.addEventListener('click', (e) => {
+                if (e.target === statsModal) closeStatsModal();
+            });
+
+            // Refresh "active now" when the player comes back to the tab (rejoin),
+            // throttled so switching tabs repeatedly doesn't spam the backend.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    sendHeartbeat(false);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const crystal = game.grid[r][c];
+                        if (crystal) {
+                            crystal.targetX = boardX + c * cellSize + cellSize / 2;
+                            crystal.targetY = boardY + r * cellSize + cellSize / 2;
+                            if (crystal.isSettled) {
+                                crystal.currentX = crystal.targetX;
+                                crystal.currentY = crystal.targetY;
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    if (game.gameState === 'gameover' || game.gameState === 'playing') {
+                        game.start();
+                    }
+                }
+                if (e.key === 's' || e.key === 'S') {
+                    game.audio.init();
+                    game.audio.toggle();
+                }
+            });
+
+            // Initialize the canvas and start the render loop
+            nicknameInput.value = nickname;
+            initCanvas();
+
+            // One heartbeat on page load: registers/refreshes this player and
+            // pulls back their server-known high score + the current global stats.
+            sendHeartbeat(true);
+        })();
+    </script>
+</body>
+</html>

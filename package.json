@@ -1,0 +1,9 @@
+{
+  "name": "crystal-burst",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Crystal Burst - satisfying puzzle game with server-side stats via Netlify Blobs",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
